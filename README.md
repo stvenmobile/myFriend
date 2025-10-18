@@ -53,6 +53,117 @@ A kid-friendly, desk-sized companion (“the Friend”) that reacts to a **gestu
 
 ---
 
+# 🧩 Display & Hardware Configuration
+
+### Hybrid Display Architecture
+
+**myFriend** uses a **two-display system** for modularity and realism:
+
+| Display                                         | Role         | Processor | Typical Content                                          |
+| ----------------------------------------------- | ------------ | --------- | -------------------------------------------------------- |
+| **ESP32-S3 CYD 3.5" (ESP32-3248S035C)**         | “Face”       | ESP32-S3  | Eyes, expressions, servos, gestures, touch responses     |
+| **7" HDMI IPS (connected to Jetson Orin Nano)** | “Info Panel” | Jetson    | Text, math problems, images, calendar, dialogue captions |
+
+This hybrid design keeps the **face responsive and self-contained**, while the **Jetson** handles high-level thinking, speech, and extended visual content.
+
+---
+
+## 🪞 CYD Face (ESP32-3248S035C)
+
+**Module:**
+
+> 3.5" ESP32-3248S035C Capacitive Touch (ST7796 480×320) — Wi-Fi + Bluetooth Development Board
+> [OpenHASP Hardware Guide](https://www.openhasp.com/0.7.0/hardware/sunton/esp32-3248s035/)
+> [GitHub Reference: ardnew/ESP32-3248S035](https://github.com/ardnew/ESP32-3248S035)
+> [Discussion: openHASP #384](https://github.com/HASwitchPlate/openHASP/discussions/384)
+
+### Key Features
+
+* **Display:** ST7796 480×320 TFT LCD (SPI interface)
+* **Touch:** GT911 capacitive controller (I²C)
+* **Processor:** ESP32-S3 (8 MB PSRAM typical)
+* **Connectivity:** Wi-Fi, BLE, USB-C
+* **Power Draw:** ~160 mA typical at 5 V (exclude servos)
+
+### Recommended Libraries
+
+* [LovyanGFX](https://github.com/lovyan03/LovyanGFX) or [Arduino_GFX](https://github.com/moononournation/Arduino_GFX)
+* [TAMC_GT911](https://github.com/TAMCTec/TAMC_GT911) (touch)
+* [Async MQTT Client](https://github.com/marvinroger/async-mqtt-client)
+* [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) (wand BLE link)
+
+### Functional Roles
+
+* Runs the **“face engine”**: eyes, pupils, blinking, expressions, and simple overlays.
+* Drives **PCA9685** for servos (arms, head).
+* Handles **BLE** link to the wand (gesture + orientation).
+* Publishes/consumes **MQTT** topics for Jetson interaction.
+* Optional: plays short local SFX via **MAX98357A I²S amp**.
+
+### Electrical Notes
+
+* **Display SPI** and **touch I²C** are already pinned internally.
+
+  * Confirm SDA/SCL (often GPIO 19/20 on this board).
+  * Backlight control pin: typically **GPIO 45** (PWM-capable).
+* **PCA9685 (servos)**:
+
+  * SDA = GPIO 8, SCL = GPIO 9 (or shared I²C bus).
+  * VCC = 3.3 V, V+ = 5 V.
+* **Audio (MAX98357A)**: I²S BCLK = GPIO 14, LRCLK = GPIO 13, DIN = GPIO 12.
+* **Power:** single 5 V 3 A supply, separate servo rail with ≥ 1000 µF bulk capacitor.
+
+---
+
+## 🧠 Jetson HDMI Info Panel
+
+* **Hardware:** 7" HDMI IPS + USB capacitive touch (800×480 or higher)
+* **Role:** Displays extended information, dialogue captions, photos, or learning content.
+* **Software:** Chromium kiosk or PyQt app subscribing to MQTT telemetry.
+* **Integration:**
+
+  * Publishes `myfriend/friend/cmd/*` messages (e.g., `say`, `anim`, `expression`)
+  * Subscribes to `myfriend/friend/wand` and `myfriend/friend/sensors` for real-time interaction feedback.
+
+---
+
+## 🔗 Communication Overview
+
+| Link          | Direction                 | Protocol                                          | Function |
+| ------------- | ------------------------- | ------------------------------------------------- | -------- |
+| Wand → Face   | BLE (NimBLE)              | Gestures, orientation                             |          |
+| Face ↔ Jetson | MQTT (Wi-Fi)              | Commands, telemetry, expressions, speech triggers |          |
+| Jetson → HDMI | Direct (HDMI + USB touch) | Visual information and extended UI                |          |
+
+---
+
+## 📂 Firmware Layout Update
+
+```
+firmware/
+├─ wand/                   # Arduino Nano 33 BLE (gesture IMU)
+└─ friend-esp32s3-cyd/     # CYD 3.5" ESP32-S3 (face + servos + BLE + MQTT)
+```
+
+---
+
+## 🧱 Build Priorities
+
+1. **CYD Face bring-up**
+
+   * Verify display + touch (LovyanGFX + GT911).
+   * Show blinking eyes.
+   * Add BLE gesture listener.
+   * Add MQTT client (connects to Jetson broker).
+2. **PCA9685 servo control** for head/arms.
+3. **Audio playback** via MAX98357A.
+4. **Jetson integration** (speech + HDMI UI).
+
+---
+
+
+
+
 ## Bill of Materials
 
 ### Wand
