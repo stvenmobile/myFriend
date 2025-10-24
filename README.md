@@ -4,6 +4,10 @@ A kid-friendly, desk-sized companion (“the Friend”) that reacts to a **gestu
 - **Wand:** Arduino Nano 33 BLE recognizes gestures (wave, circle, flick, tickle) and broadcasts them via BLE.  
 - **Friend:** ESP32-S3 (or CYD 2.8") shows animated eyes, moves head/arms via servos, and plays sounds — reacting to wand gestures and touch.
 
+myFriend actually consists of two main functional components. The face and body of myFriend are mainly complsed of a head, a CYD 3.5 inch display for eyes and mouth, and two arms with servis to control arm movement.
+
+But the brain of myfriend will be the speech capable robot from my other github repo sophia-robot, which consists of a capable assistant who can respond to queries by contacting ollama, tell stories, give the weather, and so on. This rpository focuses on the body of my friend (head, face, arms), and the interactions with a magic wand. I will figure out the full integration of the two projects later.
+
 > This README refactors and structures the initial outline you provided. (Source: uploaded README draft.)
 
 ---
@@ -58,6 +62,13 @@ A kid-friendly, desk-sized companion (“the Friend”) that reacts to a **gestu
 ### Hybrid Display Architecture
 
 **myFriend** uses a **two-display system** for modularity and realism:
+
+┌────────────┐    BLE     ┌──────────────┐     MQTT/WiFi      ┌────────────┐
+│  WAND      │──────────▶│   FRIEND     │──────────────────▶│  JETSON     │
+│ (Nano BLE) │ gestures   │ (ESP32-S3)   │ telemetry/commands │ (Sophia)   │
+└────────────┘            │ Face + Servos│                    │ HDMI Panel │
+                          └──────────────┘                    └────────────┘
+
 
 | Display                                         | Role         | Processor | Typical Content                                          |
 | ----------------------------------------------- | ------------ | --------- | -------------------------------------------------------- |
@@ -127,6 +138,18 @@ This hybrid design keeps the **face responsive and self-contained**, while the *
 
 ---
 
+### myFriend Integration with sophia-robot
+https://github.com/stvenmobile/sophia-robot
+
+The Jetson runs **Sophia**, the voice and cognition stack. It handles:
+- Speech recognition (ASR)
+- Natural language intent mapping
+- Text-to-speech (TTS)
+- UI output on the HDMI Info Panel
+
+The Sophia repo is linked as a submodule under `brain/sophia-robot/`.
+
+
 ## 🔗 Communication Overview
 
 | Link          | Direction                 | Protocol                                          | Function |
@@ -140,12 +163,27 @@ This hybrid design keeps the **face responsive and self-contained**, while the *
 ## 📂 Firmware Layout Update
 
 ```
-firmware/
-├─ wand/                   # Arduino Nano 33 BLE (gesture IMU)
-└─ friend-esp32s3-cyd/     # CYD 3.5" ESP32-S3 (face + servos + BLE + MQTT)
+firmware/ 
+  ├─ wand/                    # Arduino Nano 33 BLE (gesture IMU) 
+  └─ friend-esp32-cyd-2_8/    # CYD 2.8" ESP32 (face + servos + BLE + MQTT) 
+  └─ friend-esp32-cyd-3_5/    # CYD 3.5" ESP32 (face + servos + BLE + MQTT)
+
 ```
 
 ---
+
+### Firmware Milestones (ESP32-S3 CYD)
+
+| Stage | Goal | Milestone |
+|--------|------|-----------|
+| **M0** | Display bring-up | Show static eyes (LovyanGFX) |
+| **M1** | Eye animation | Pupils track fake yaw/pitch |
+| **M2** | Touch input | Tap to blink/wink |
+| **M3** | BLE listener | Receive gestures (mock wand) |
+| **M4** | MQTT connect | Publish state to Jetson broker |
+| **M5** | Servo driver | Move head/arms on gesture |
+| **M6** | Audio | Play local sounds (MAX98357A) |
+
 
 ## 🧱 Build Priorities
 
@@ -174,13 +212,13 @@ firmware/
 - Optional: WS2812 8‑LED ring, piezo, momentary button
 
 ### Friend
-- **ESP32‑S3** dev board *or* **ESP32‑S3 CYD 2.8"** (display)
+- **ESP32-S3 CYD 3.5** (ESP32-3248S035C module)
 - **PCA9685** 16‑ch servo driver (3.3V logic, 5V servo rail)
 - **Servos:** 2× SG90 (arms), 1× **MG90S** (head pan)
 - **I2S Amp:** MAX98357A + 3W 4–8Ω speaker (or DFPlayer Mini as alternative)
 - Optional: **TTP223** touch sensor; **VL53L0X/L1X** ToF
 - **PSU:** 5V 3–4A
-- 3D‑printed/simple enclosure + hinges
+- 3D‑printed enclosure... hinges,pivots...
 
 ---
 
