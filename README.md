@@ -63,8 +63,8 @@ But the brain of myfriend will be the speech capable robot from my other github 
 **myFriend** uses a modular two-display design for realism and flexibility:
 
 
-WAND (Nano BLE) → FRIEND (ESP32-S3 CYD 2.8") → JETSON (Sophia)
-     [BLE link]        [MQTT/WiFi link]           [HDMI Panel]
+WAND (Nano BLE)  —[BLE]→  FRIEND (ESP32-S3 CYD 2.8")  —[MQTT/WiFi]→  JETSON (Sophia)
+
 
 
 
