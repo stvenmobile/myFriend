@@ -56,87 +56,101 @@ But the brain of myfriend will be the speech capable robot from my other github 
 - **Eyes follow wand** using yaw/pitch data
 
 ---
-
-# 🧩 Display & Hardware Configuration
+## 🧩 Display & Hardware Configuration
 
 ### Hybrid Display Architecture
 
-**myFriend** uses a **two-display system** for modularity and realism:
-
-┌────────────┐    BLE     ┌──────────────┐     MQTT/WiFi      ┌────────────┐
-│  WAND      │──────────▶│   FRIEND     │──────────────────▶│  JETSON     │
-│ (Nano BLE) │ gestures   │ (ESP32-S3)   │ telemetry/commands │ (Sophia)   │
-└────────────┘            │ Face + Servos│                    │ HDMI Panel │
-                          └──────────────┘                    └────────────┘
+**myFriend** uses a modular two-display design for realism and flexibility:
 
 
-| Display                                         | Role         | Processor | Typical Content                                          |
-| ----------------------------------------------- | ------------ | --------- | -------------------------------------------------------- |
-| **ESP32-S3 CYD 3.5" (ESP32-3248S035C)**         | “Face”       | ESP32-S3  | Eyes, expressions, servos, gestures, touch responses     |
-| **7" HDMI IPS (connected to Jetson Orin Nano)** | “Info Panel” | Jetson    | Text, math problems, images, calendar, dialogue captions |
+┌────────────┐   BLE   ┌──────────────┐   MQTT/WiFi   ┌────────────┐
+│   WAND     │ ------> │   FRIEND     │ ------------> │  JETSON    │
+│ (Nano BLE) │         │ (ESP32-S3)   │               │ (Sophia)   │
+└────────────┘         │ Face + Servos│               │ HDMI Panel │
+                       └──────────────┘               └────────────┘
 
-This hybrid design keeps the **face responsive and self-contained**, while the **Jetson** handles high-level thinking, speech, and extended visual content.
 
----
+ 
+| Display | Role | Processor | Typical Content |
+|----------|------|------------|-----------------|
+| **ESP32-2432S028 CYD 2.8" (ESP32-S3)** | “Face” | ESP32-S3 | Eyes, expressions, gestures, touch input |
+| **Optional 7" HDMI IPS (Jetson Orin Nano)** | “Info Panel” | Jetson Orin Nano | Text, math tutoring, images, captions |
 
-## 🪞 CYD Face (ESP32-3248S035C)
-
-**Module:**
-
-> 3.5" ESP32-3248S035C Capacitive Touch (ST7796 480×320) — Wi-Fi + Bluetooth Development Board
-> [OpenHASP Hardware Guide](https://www.openhasp.com/0.7.0/hardware/sunton/esp32-3248s035/)
-> [GitHub Reference: ardnew/ESP32-3248S035](https://github.com/ardnew/ESP32-3248S035)
-> [Discussion: openHASP #384](https://github.com/HASwitchPlate/openHASP/discussions/384)
-
-### Key Features
-
-* **Display:** ST7796 480×320 TFT LCD (SPI interface)
-* **Touch:** GT911 capacitive controller (I²C)
-* **Processor:** ESP32-S3 (8 MB PSRAM typical)
-* **Connectivity:** Wi-Fi, BLE, USB-C
-* **Power Draw:** ~160 mA typical at 5 V (exclude servos)
-
-### Recommended Libraries
-
-* [LovyanGFX](https://github.com/lovyan03/LovyanGFX) or [Arduino_GFX](https://github.com/moononournation/Arduino_GFX)
-* [TAMC_GT911](https://github.com/TAMCTec/TAMC_GT911) (touch)
-* [Async MQTT Client](https://github.com/marvinroger/async-mqtt-client)
-* [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) (wand BLE link)
-
-### Functional Roles
-
-* Runs the **“face engine”**: eyes, pupils, blinking, expressions, and simple overlays.
-* Drives **PCA9685** for servos (arms, head).
-* Handles **BLE** link to the wand (gesture + orientation).
-* Publishes/consumes **MQTT** topics for Jetson interaction.
-* Optional: plays short local SFX via **MAX98357A I²S amp**.
-
-### Electrical Notes
-
-* **Display SPI** and **touch I²C** are already pinned internally.
-
-  * Confirm SDA/SCL (often GPIO 19/20 on this board).
-  * Backlight control pin: typically **GPIO 45** (PWM-capable).
-* **PCA9685 (servos)**:
-
-  * SDA = GPIO 8, SCL = GPIO 9 (or shared I²C bus).
-  * VCC = 3.3 V, V+ = 5 V.
-* **Audio (MAX98357A)**: I²S BCLK = GPIO 14, LRCLK = GPIO 13, DIN = GPIO 12.
-* **Power:** single 5 V 3 A supply, separate servo rail with ≥ 1000 µF bulk capacitor.
+The 2.8″ CYD module runs independently as the expressive **face display**, keeping animations responsive and self-contained, while the Jetson handles cognition, speech, and auxiliary visuals.
 
 ---
 
-## 🧠 Jetson HDMI Info Panel
+### 🪞 CYD Face (ESP32-2432S028)
 
-* **Hardware:** 7" HDMI IPS + USB capacitive touch (800×480 or higher)
-* **Role:** Displays extended information, dialogue captions, photos, or learning content.
-* **Software:** Chromium kiosk or PyQt app subscribing to MQTT telemetry.
-* **Integration:**
+**Module:**  
+2.8″ ESP32-2432S028 TFT (ILI9341 320×240) — Wi-Fi + Bluetooth + USB-C development board  
+Reference: [Elecrow ESP32-2432S028 GitHub](https://github.com/Elecrow-ESP32-Projects)
 
-  * Publishes `myfriend/friend/cmd/*` messages (e.g., `say`, `anim`, `expression`)
-  * Subscribes to `myfriend/friend/wand` and `myfriend/friend/sensors` for real-time interaction feedback.
+#### Key Features
+- **Display:** ILI9341 TFT (320×240, SPI)
+- **Touch:** XPT2046 resistive controller (SPI)
+- **Processor:** ESP32-S3 (8 MB flash, no PSRAM)
+- **Connectivity:** Wi-Fi, BLE, USB-C
+- **Power:** 5 V input (~150 – 180 mA typical)
+
+#### Recommended Libraries
+- `LovyanGFX` (for graphics)
+- `XPT2046_Touchscreen` (for touch input)
+- `ArduinoJson` or `AsyncMQTTClient` (for telemetry)
+- `NimBLE-Arduino` (for BLE wand link)
+
+#### Functional Roles
+- Runs the **face engine** (eyes, pupils, blinking, expressions)
+- Controls **PCA9685** servo controller (arms, head)
+- Manages **BLE link** to wand for gestures/orientation
+- Publishes/subscribes to **MQTT** topics for Jetson integration
+- Optionally plays short local audio via MAX98357A I²S amp
+
+#### Electrical Notes
+- **Display SPI** and **touch SPI** are internally wired  
+- **Backlight PWM:** GPIO 45  
+- **PCA9685 I²C:** SDA = GPIO 8, SCL = GPIO 9 (3.3 V logic, 5 V servo rail)  
+- **Audio (MAX98357A):** BCLK = GPIO 14, LRCLK = GPIO 13, DIN = GPIO 12  
+- Use a 5 V 3 A supply with ≥ 1000 µF bulk capacitor for servo stability
 
 ---
+
+### 🧠 Jetson HDMI Info Panel (Optional)
+
+- **Hardware:** 7″ HDMI IPS + USB capacitive touch (800×480 or higher)  
+- **Role:** Displays extended information, dialogue captions, learning content  
+- **Software:** Chromium kiosk or custom PyQt app subscribing to MQTT telemetry  
+
+**Integration**
+- Publishes `myfriend/friend/cmd/*` (e.g. `say`, `anim`, `expression`)  
+- Subscribes to `myfriend/friend/wand` and `myfriend/friend/sensors` for real-time feedback
+
+---
+
+### 🤖 myFriend Integration with sophia-robot  
+[https://github.com/stvenmobile/sophia-robot](https://github.com/stvenmobile/sophia-robot)
+
+The Jetson Orin Nano runs the **Sophia** voice and cognition stack, managing:
+- **ASR** (speech recognition)  
+- **Intent mapping / dialogue control**  
+- **TTS** (text-to-speech)  
+- **UI output** on the HDMI Info Panel  
+- **MQTT exchange** with the ESP32 “face” module
+
+---
+
+### 🔧 Planned Enhancement
+
+The CYD 2.8″ face module will communicate with Sophia via USB CDC, enabling real-time animation commands such as `start_smile`, `start_talking`, and `start_puzzled`.  
+This keeps facial expression and voice output synchronized for a more natural human-like interaction.
+
+
+
+
+
+
+
+
 
 ### myFriend Integration with sophia-robot
 https://github.com/stvenmobile/sophia-robot
